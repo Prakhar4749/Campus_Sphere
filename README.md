@@ -1,46 +1,64 @@
 
-# 🎓 IT Department Portal — Event Driven Microservices Platform (UIT RGPV)
+# 🏫 Campus Sphere — Multi-Tenant Workflow Engine (UIT RGPV)
 
 ![Status](https://img.shields.io/badge/Status-Active_Development-success)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-green)
-![Architecture](https://img.shields.io/badge/Architecture-Event_Driven_Microservices-purple)
+![Architecture](https://img.shields.io/badge/Architecture-Multi_Tenant_Microservices-purple)
 ![Kafka](https://img.shields.io/badge/Eventing-Kafka-orange)
-![WebSocket](https://img.shields.io/badge/Realtime-WebSocket-blue)
+![Realtime](https://img.shields.io/badge/Realtime-WebSocket-blue)
+![Security](https://img.shields.io/badge/Security-JWT_RBAC-green)
 ![Cloud](https://img.shields.io/badge/Cloud-Ready-informational)
 
-> **Client:** IT Department — University Institute of Technology, RGPV  
-> **Architecture Version:** v2 (Distributed System)  
-> **Goal:** Production-style academic workflow automation platform
+> **Domain:** Academic Workflow Automation Platform  
+> **Architecture:** Multi-Tenant Event-Driven Microservices  
+> **Purpose:** Enable multiple institutions to operate independent academic workflows on a shared distributed backend.
 
 ---
 
 ## 🚀 Overview
 
-The **IT Department Portal** is a distributed backend system designed to automate academic workflows such as:
+**Campus Sphere** is a distributed backend platform designed as a **multi-tenant workflow engine** for academic institutions.
 
-- Student & faculty onboarding
-- Department & college management
-- Approval workflows
-- Secure authentication & authorization
+Instead of building separate systems for each college, the platform allows multiple institutes to operate securely on a shared infrastructure while maintaining strict data isolation.
+
+The system manages:
+
+- User onboarding & authentication
+- Department & organization workflows
+- Approval chains
 - Real-time notifications
+- Tenant-scoped authorization
 
-Unlike traditional monolithic college portals, this platform is built as a **cloud-native event-driven microservices architecture**.
-
-Services communicate:
-- **Synchronously → API Gateway (REST)**
-- **Asynchronously → Kafka Events**
-
-This enables independent deployment, scaling, and failure isolation.
+Each tenant (college/institution) operates logically independent while sharing the same infrastructure.
 
 ---
 
-## 🧠 Core Concept (Event Driven Flow)
+## 🧠 Core Architecture Idea
 
-Instead of tightly coupled service-to-service calls:
+The platform follows two core backend principles:
+
+### 1️⃣ Multi-Tenant Logical Isolation
+A shared PostgreSQL database stores data for multiple institutions, but every request is scoped using a tenant identifier.
 
 ```
 
-Service → Publish Event → Kafka → Consumer Reacts
+Request → Gateway → Tenant Context → Service → Tenant-Scoped Data Access
+
+```
+
+This ensures:
+- No cross-organization data leaks
+- Independent workflows per institution
+- Cost-efficient infrastructure
+
+---
+
+### 2️⃣ Event-Driven Communication
+
+Services do not directly depend on each other.
+
+```
+
+Service Action → Publish Domain Event → Kafka → Subscriber Reacts
 
 ```
 
@@ -48,87 +66,86 @@ Example:
 
 ```
 
-User Approved
+Admin Approves User
 ↓
-Auth Service emits event
+Auth Service publishes event
 ↓
 Kafka Topic
 ↓
 Notification Service
 ↓
-WebSocket + Email
+WebSocket + Email alert
 
 ```
 
+This removes tight coupling and allows the system to scale independently.
+
 ---
 
-## 🏗️ System Architecture
+## 🏗 System Architecture
 
 ### Core Services
 
 | Service | Responsibility |
 |------|------|
-| **Service Registry (Eureka)** | Dynamic service discovery |
-| **API Gateway** | Routing + authentication validation |
-| **Auth Service** | Login, signup, JWT, OTP, roles |
-| **Admin Service** | College & department management |
-| **Notification Service** | Event consumer & real-time notifications |
+| Service Registry | Dynamic service discovery |
+| API Gateway | Centralized routing + tenant validation |
+| Auth Service | Authentication, JWT, RBAC |
+| Admin Service | Organization & department workflow |
+| Notification Service | Real-time & transactional alerts |
 
 ---
 
-### Event Communication
+## 🔔 Notification Pipeline
 
-```
+The platform contains a dedicated asynchronous notification system:
 
-Auth/Admin Services
-↓
-Kafka Cloud
-↓
-Notification Service
-↙           ↘
-WebSocket     Email (Brevo)
+**Capabilities**
 
-```
+- Kafka event consumption
+- WebSocket real-time push updates
+- Email delivery via Brevo
+- Priority based alerts
+- Tenant-aware notifications
 
 ---
 
-## 🔔 Notification Engine
+## 🔐 Security Model
 
-The platform includes a dedicated **Notification Microservice** capable of:
+The system implements layered security:
 
-- Consuming Kafka domain events
-- Persisting notifications in PostgreSQL
-- Real-time WebSocket push alerts
-- Transactional email sending
-- Priority based notifications
-- Extensible for SMS / Push notifications
+- Stateless JWT authentication
+- Multi-Level Role Based Access Control
+- Tenant-Scoped Authorization
+- Gateway request validation
+- Internal service protection
+
+Each request carries both:
+
+```
+
+User Identity + Tenant Identity
+
+```
+
+This prevents cross-tenant data access.
 
 ---
 
 ## 🛠 Technology Stack
 
-| Domain | Technology |
+| Layer | Technology |
 |------|------|
 | Language | Java 17 |
 | Framework | Spring Boot 3 |
-| Microservices | Spring Cloud Gateway + Eureka |
-| Security | Spring Security + JWT |
-| Messaging | Kafka (Cloud Hosted) |
+| Microservices | Spring Cloud (Gateway + Eureka) |
+| Messaging | Apache Kafka |
 | Realtime | WebSocket (STOMP) |
-| Email | Brevo API |
-| Database | PostgreSQL (Neon Cloud) |
-| Architecture | Event-Driven + AOP Events |
-| Deployment | Railway / Render Ready |
-
----
-
-## 🔐 Security Design
-
-- Stateless JWT authentication
-- Gateway-level validation
-- Role based authorization
-- Internal service protection headers
-- No direct service exposure
+| Security | JWT + RBAC |
+| Database | PostgreSQL (Multi-Tenant) |
+| Email | Brevo SMTP/API |
+| Cache (Planned) | Redis |
+| Deployment | Cloud Ready |
 
 ---
 
@@ -136,74 +153,36 @@ The platform includes a dedicated **Notification Microservice** capable of:
 
 ```
 
-IT_Department_Portal
+CampusSphere
 ├── ServiceRegistry
 ├── ApiGateway
 ├── AuthService
 ├── AdminService
 └── NotificationService
 
-````
-
----
-
-## 🧪 Running Locally
-
-### Prerequisites
-- Java 17
-- Maven
-- PostgreSQL Database
-- Kafka Cloud Credentials
-
-### Clone
-
-```bash
-git clone https://github.com/<your-username>/IT_Department_Portal.git
-cd IT_Department_Portal
-````
-
-### Run Services (Order)
-
-```
-1. ServiceRegistry
-2. ApiGateway
-3. AuthService
-4. AdminService
-5. NotificationService
 ```
 
 ---
 
-## 📈 Future Enhancements
+## 📈 Development Status
 
-* Resume parser service
-* Redis caching layer
-* Analytics dashboard
-* User notification preferences
-* Retry & Dead Letter Queue
-* Frontend integration (React)
+The platform is currently in active development.
+
+Upcoming modules:
+
+- Redis caching layer
+- Workflow engine extensions
+- Analytics dashboards
+- Retry & Dead Letter Queue
+- Resume parsing & academic records module
 
 ---
 
 ## 👨‍💻 Author
 
-**Prakhar Sakhare**
-B.Tech IT — UIT RGPV
-Backend & Microservices Developer
+**Prakhar Sakhare**  
+Backend & Distributed Systems Developer
 
 ---
 
-> This project is built using real industry architecture patterns to simulate a production-grade distributed backend system rather than a simple CRUD application.
-
-````
-
----
-
-After pasting, commit:
-
-```bash
-git add README.md
-git commit -m "docs: update project readme with architecture and tech stack"
-git push
-````
-
+> This project is built to simulate real production SaaS architecture where multiple organizations share infrastructure while maintaining strict logical isolation.
