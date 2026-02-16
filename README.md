@@ -1,126 +1,209 @@
-# 🎓 IT Department Portal (UIT RGPV)
 
-![Status](https://img.shields.io/badge/Status-In_Development-yellow)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.0-green)
-![Microservices](https://img.shields.io/badge/Architecture-Microservices-blueviolet)
-![Docker](https://img.shields.io/badge/Docker-Enabled-blue)
+# 🎓 IT Department Portal — Event Driven Microservices Platform (UIT RGPV)
 
-> **Current Phase:** Phase 1 (Infrastructure & Scaffolding)  
-> **Client:** IT Department, University Institute of Technology (UIT), RGPV  
-> **Version:** 2.0 (Development Build)
+![Status](https://img.shields.io/badge/Status-Active_Development-success)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-green)
+![Architecture](https://img.shields.io/badge/Architecture-Event_Driven_Microservices-purple)
+![Kafka](https://img.shields.io/badge/Eventing-Kafka-orange)
+![WebSocket](https://img.shields.io/badge/Realtime-WebSocket-blue)
+![Cloud](https://img.shields.io/badge/Cloud-Ready-informational)
 
-## 🚧 Project Status & Overview
-
-The **IT Department Portal** is an upcoming centralized platform for managing student and faculty data, research showcases, and automated reporting.
-
-**Currently, the project is in the initial development phase.** We have established the **Microservices Architecture Skeleton**, allowing for the independent development and deployment of future modules. The foundational infrastructure (Service Discovery, API Gateway, and Containerization) is operational.
+> **Client:** IT Department — University Institute of Technology, RGPV  
+> **Architecture Version:** v2 (Distributed System)  
+> **Goal:** Production-style academic workflow automation platform
 
 ---
 
-## ✅ Current Implementation Details (Infrastructure)
+## 🚀 Overview
 
-The following architectural components are currently set up and running:
+The **IT Department Portal** is a distributed backend system designed to automate academic workflows such as:
 
-* **[x] Service Registry (Eureka Server):** Centralized discovery for all microservices.
-* **[x] API Gateway:** Unified entry point for routing requests to specific services.
-* **[x] Docker Orchestration:** `docker-compose.yml` is configured to spin up the service skeleton.
-* **[x] Service Scaffolding:** Spring Boot projects created for:
-    * `user-service`
-    * `resume-parser-service`
-    * `export-service`
-    * `phd-service`
+- Student & faculty onboarding
+- Department & college management
+- Approval workflows
+- Secure authentication & authorization
+- Real-time notifications
 
----
+Unlike traditional monolithic college portals, this platform is built as a **cloud-native event-driven microservices architecture**.
 
-## 🗺️ Roadmap: Planned Features (From SRS)
+Services communicate:
+- **Synchronously → API Gateway (REST)**
+- **Asynchronously → Kafka Events**
 
-We are following a phased development lifecycle based on SRS v2.0.
-
-### 🔜 Phase 1: Core Functionality (Next Steps)
-- [ ] **Database Integration:** Connecting PostgreSQL (Users/Transactional) and MongoDB (Profiles).
-- [ ] **Security Layer:** Implementing Spring Security with JWT Authentication in the `user-service`.
-- [ ] **Basic Profile CRUD:** APIs for creating Student and Faculty profiles.
-- [ ] **Frontend Integration:** Connecting the React.js basics to the API Gateway.
-
-### 📅 Phase 2: Advanced Features
-- [ ] **Resume Parser Logic:** Implementing the logic to extract JSON from PDF/DOCX uploads.
-- [ ] **Approval Workflow:** Building the Student $\rightarrow$ Faculty $\rightarrow$ Admin verification chain.
-- [ ] **Reporting Service:** Implementing Apache POI (Excel) and iText (PDF) generation logic.
-
-### 📅 Phase 3: Scaling & Public Modules
-- [ ] **PhD Scholar Showcase:** Dynamic content delivery for research publications.
-- [ ] **Redis Caching:** Optimizing response times for public directories.
-- [ ] **Notification System:** Real-time alerts for profile status updates.
+This enables independent deployment, scaling, and failure isolation.
 
 ---
 
-## 🏗 System Architecture
+## 🧠 Core Concept (Event Driven Flow)
 
-The project utilizes a **Microservices Architecture** to ensure scalability.
+Instead of tightly coupled service-to-service calls:
 
+```
 
+Service → Publish Event → Kafka → Consumer Reacts
 
-[Image of microservices architecture diagram]
+```
 
+Example:
 
-**Services Breakdown:**
-1.  **User/Profile Service:** (Skeleton Ready) - Will handle Auth & Data.
-2.  **Resume Parser Service:** (Skeleton Ready) - Will handle NLP extraction.
-3.  **Export Service:** (Skeleton Ready) - Will handle File generation.
-4.  **PhD Service:** (Skeleton Ready) - Will handle Research data.
-5.  **Homepage Service:** (Planned) - Public content management.
+```
+
+User Approved
+↓
+Auth Service emits event
+↓
+Kafka Topic
+↓
+Notification Service
+↓
+WebSocket + Email
+
+```
 
 ---
 
-## 🛠 Tech Stack
+## 🏗️ System Architecture
+
+### Core Services
+
+| Service | Responsibility |
+|------|------|
+| **Service Registry (Eureka)** | Dynamic service discovery |
+| **API Gateway** | Routing + authentication validation |
+| **Auth Service** | Login, signup, JWT, OTP, roles |
+| **Admin Service** | College & department management |
+| **Notification Service** | Event consumer & real-time notifications |
+
+---
+
+### Event Communication
+
+```
+
+Auth/Admin Services
+↓
+Kafka Cloud
+↓
+Notification Service
+↙           ↘
+WebSocket     Email (Brevo)
+
+```
+
+---
+
+## 🔔 Notification Engine
+
+The platform includes a dedicated **Notification Microservice** capable of:
+
+- Consuming Kafka domain events
+- Persisting notifications in PostgreSQL
+- Real-time WebSocket push alerts
+- Transactional email sending
+- Priority based notifications
+- Extensible for SMS / Push notifications
+
+---
+
+## 🛠 Technology Stack
 
 | Domain | Technology |
-| :--- | :--- |
-| **Backend Framework** | Spring Boot (Java 17) |
-| **Microservices** | Spring Cloud Gateway, Eureka |
-| **Databases** | PostgreSQL (Relational) & MongoDB (Flexible) |
-| **Frontend** | React.js (Planned) |
-| **DevOps** | Docker, Docker Compose |
+|------|------|
+| Language | Java 17 |
+| Framework | Spring Boot 3 |
+| Microservices | Spring Cloud Gateway + Eureka |
+| Security | Spring Security + JWT |
+| Messaging | Kafka (Cloud Hosted) |
+| Realtime | WebSocket (STOMP) |
+| Email | Brevo API |
+| Database | PostgreSQL (Neon Cloud) |
+| Architecture | Event-Driven + AOP Events |
+| Deployment | Railway / Render Ready |
 
 ---
 
-## 🚀 Getting Started (Running the Skeleton)
+## 🔐 Security Design
 
-Since the project is currently in the infrastructure phase, running the project will spin up the empty services and the discovery server.
+- Stateless JWT authentication
+- Gateway-level validation
+- Role based authorization
+- Internal service protection headers
+- No direct service exposure
+
+---
+
+## 📦 Repository Structure
+
+```
+
+IT_Department_Portal
+├── ServiceRegistry
+├── ApiGateway
+├── AuthService
+├── AdminService
+└── NotificationService
+
+````
+
+---
+
+## 🧪 Running Locally
 
 ### Prerequisites
-* Docker & Docker Compose
-* Java 17+
-* Maven
+- Java 17
+- Maven
+- PostgreSQL Database
+- Kafka Cloud Credentials
 
-### Steps
-1.  **Clone the repository**
-    ```bash
-    git clone [https://github.com/your-username/it-dept-portal.git](https://github.com/your-username/it-dept-portal.git)
-    cd it-dept-portal
-    ```
+### Clone
 
-2.  **Build the Services**
-    Navigate to the root and build the JARs (ensure you have a root `pom.xml` or build individually):
-    ```bash
-    mvn clean package -DskipTests
-    ```
+```bash
+git clone https://github.com/<your-username>/IT_Department_Portal.git
+cd IT_Department_Portal
+````
 
-3.  **Start Infrastructure**
-    ```bash
-    docker-compose up --build
-    ```
+### Run Services (Order)
 
-4.  **Verify Connectivity**
-    * **Eureka Dashboard:** `http://localhost:8761` (Check if services are registered)
-    * **API Gateway:** `http://localhost:8080`
+```
+1. ServiceRegistry
+2. ApiGateway
+3. AuthService
+4. AdminService
+5. NotificationService
+```
 
 ---
 
-## 👥 Authors
+## 📈 Future Enhancements
 
-* **Prakhar Sakhare**
-* **Mentor:** Dr. Mahesh Pawar
+* Resume parser service
+* Redis caching layer
+* Analytics dashboard
+* User notification preferences
+* Retry & Dead Letter Queue
+* Frontend integration (React)
 
 ---
-*Disclaimer: This repository is currently under active construction. Features listed in the Roadmap are subject to development as per the SRS requirements.*
+
+## 👨‍💻 Author
+
+**Prakhar Sakhare**
+B.Tech IT — UIT RGPV
+Backend & Microservices Developer
+
+---
+
+> This project is built using real industry architecture patterns to simulate a production-grade distributed backend system rather than a simple CRUD application.
+
+````
+
+---
+
+After pasting, commit:
+
+```bash
+git add README.md
+git commit -m "docs: update project readme with architecture and tech stack"
+git push
+````
+
