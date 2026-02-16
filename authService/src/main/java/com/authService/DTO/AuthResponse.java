@@ -1,14 +1,15 @@
 package com.authService.DTO;
-
+import com.authService.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
-public class AuthRequest {
+@AllArgsConstructor
+public class AuthResponse {
+    private String token;
+    private String status;
 
-    private String username;
-    private String password;
+
 }
