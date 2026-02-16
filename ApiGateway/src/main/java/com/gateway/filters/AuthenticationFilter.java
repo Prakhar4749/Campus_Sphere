@@ -1,9 +1,12 @@
 package com.gateway.filters;
 
-import jakarta.ws.rs.core.HttpHeaders;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -12,10 +15,11 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     @Autowired
     private RouteValidator validator;
 
-    //    @Autowired
-//    private RestTemplate template;
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Value("${gateway.secret}")
+    private String gatewaySecret;
 
     public AuthenticationFilter() {
         super(Config.class);
@@ -24,31 +28,46 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     @Override
     public GatewayFilter apply(Config config) {
         return ((exchange, chain) -> {
-            if (validator.isSecured.test(exchange.getRequest())) {
-                //header contains token or not
-                if (!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-                    throw new RuntimeException("missing authorization header");
+            ServerHttpRequest request = exchange.getRequest();
+            ServerHttpRequest.Builder requestBuilder = request.mutate();
+
+            // 1. Validation Logic
+            if (validator.isSecured.test(request)) {
+                if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
+                    throw new RuntimeException("Missing Authorization Header");
                 }
 
-                String authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
+                String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
                 if (authHeader != null && authHeader.startsWith("Bearer ")) {
                     authHeader = authHeader.substring(7);
                 }
+
                 try {
-//                    //REST call to AUTH service
-//                    template.getForObject("http://IDENTITY-SERVICE//validate?token" + authHeader, String.class);
+                    // A. Validate Token
                     jwtUtil.validateToken(authHeader);
 
+                    // B. Extract Claims (Crucial for RBAC)
+                    String role = jwtUtil.extractClaim(authHeader, claims -> claims.get("role", String.class));
+                    String userId = jwtUtil.extractClaim(authHeader, claims -> claims.get("userId", String.class)); // Assuming you put userId in token, else use email
+
+                    // C. Inject User Details into Headers for Downstream Services
+                    requestBuilder.header("loggedInUserRole", role);
+                    requestBuilder.header("loggedInUserEmail", jwtUtil.extractUsername(authHeader));
+                    requestBuilder.header("loggedInUserId", userId);
+
                 } catch (Exception e) {
-                    System.out.println("invalid access...!");
-                    throw new RuntimeException("un authorized access to application");
+                    System.out.println("Invalid Access: " + e.getMessage());
+                    throw new RuntimeException("Unauthorized access to application");
                 }
             }
-            return chain.filter(exchange);
+
+            // 2. Add Gateway Secret Header (For ALL requests)
+            requestBuilder.header("x-gateway-secret", gatewaySecret);
+
+            return chain.filter(exchange.mutate().request(requestBuilder.build()).build());
         });
     }
 
     public static class Config {
-
     }
 }
