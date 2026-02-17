@@ -20,7 +20,7 @@ public class AuthController {
     // 1. Generate OTP
     @PostMapping("/send-otp")
     public ResponseEntity<String> sendOtp(@RequestParam String email) {
-        otpService.generateAndSendOtp(email);
+        authService.verifyEmail(email);
         return ResponseEntity.ok("OTP sent successfully to " + email);
     }
 

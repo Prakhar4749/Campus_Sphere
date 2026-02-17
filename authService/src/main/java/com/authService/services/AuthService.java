@@ -28,7 +28,7 @@ public class AuthService {
 
     // 1. SIGNUP: Enforces OTP Validation
     @Transactional
-    @SendNotification(topic = "notification-topic", eventType = "USER_REGISTERED")
+    @SendNotification(topic = "notification.user", eventType = "USER_REGISTERED")
     public User registerUser(SignupRequest request) {
         // Step A: Check if User already exists
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -59,7 +59,7 @@ public class AuthService {
     // 2. UPDATE STATUS: Called by OpenFeign (Sync)
     // Triggers: Profile Creation (Kafka) + User Notification (Kafka)
     @Transactional
-    @SendNotification(topic = "user-events-topic", eventType = "STATUS_CHANGED")
+    @SendNotification(topic = "notification.system", eventType = "STATUS_CHANGED")
     public User updateUserStatus(String email, AccountStatus newStatus) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -87,8 +87,8 @@ public class AuthService {
         return new AuthResponse(jwtService.generateToken(user), user.getStatus().toString());
     }
 
-    // 1. FORGOT PASSWORD: Check User & Send OTP
-    @SendNotification(topic = "notification-topic", eventType = "OTP_GENERATED")
+    // For Password Reset OTP
+    @SendNotification(topic = "notification.otp", eventType = "OTP_PASSWORD_RESET")
     public OtpService.OtpEvent forgotPassword(String email) {
         // A. Validate Email exists
         if (!userRepository.existsByEmail(email)) {
@@ -98,10 +98,16 @@ public class AuthService {
         // B. Generate OTP (Reuse existing service)
         return otpService.generateAndSendOtp(email);
     }
+    // For Registration OTP
+    @SendNotification(topic = "notification.otp", eventType = "OTP_EMAIL_VERIFICATION")
+    public OtpService.OtpEvent verifyEmail(String email) {
+
+        return otpService.generateAndSendOtp(email);
+    }
 
     // 2. RESET PASSWORD: Validate OTP & Update DB
     @Transactional
-    @SendNotification(topic = "notification-topic", eventType = "PASSWORD_CHANGED")
+    @SendNotification(topic = "notification.user", eventType = "PASSWORD_CHANGED")
     public String resetPassword(String email, String otp, String newPassword) {
         // A. Validate OTP (Reuse existing service)
         boolean isOtpValid = otpService.validateOtp(email, otp);
@@ -122,7 +128,7 @@ public class AuthService {
 
     // 1. INTERNAL: Create Admin User (Called by Admin Service via Feign)
     @Transactional
-    @SendNotification(topic = "notification-topic", eventType = "ADMIN_USER_CREATED")
+    @SendNotification(topic = "notification.user", eventType = "ADMIN_USER_CREATED")
     public User createAdminUser(SignupRequest request) {
         // Validation
         if (userRepository.existsByEmail(request.getEmail())) {

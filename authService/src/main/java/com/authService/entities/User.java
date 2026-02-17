@@ -29,10 +29,10 @@ public class User {
     private Long departmentId;
 
     @Enumerated(EnumType.STRING)
-    private Role role; // STUDENT, FACULTY
+    private Role role;
 
     @Enumerated(EnumType.STRING)
-    private AccountStatus status; // PENDING, APPROVED, REJECTED
+    private AccountStatus status;
 
     @Column(columnDefinition = "boolean default false")
     private boolean isEmailVerified;

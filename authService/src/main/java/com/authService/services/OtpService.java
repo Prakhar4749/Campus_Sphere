@@ -26,12 +26,10 @@ public class OtpService {
         private String otpCode;
     }
 
-    /**
-     * Generates OTP, saves to Redis, and triggers AOP for Email Notification.
-     * @param email - The user's email
-     * @return OtpEvent - intercepted by AOP
-     */
-    @SendNotification(topic = "notification-topic", eventType = "OTP_GENERATED")
+
+        /**
+        * Generates a 6-digit OTP, stores it in Redis with a TTL, and returns an event for AOP to handle.
+        */
     public OtpEvent generateAndSendOtp(String email) {
         String otp = String.format("%06d", new Random().nextInt(999999));
 
