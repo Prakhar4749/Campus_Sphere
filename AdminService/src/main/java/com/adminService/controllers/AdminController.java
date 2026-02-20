@@ -62,7 +62,7 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getDepartmentsByCollege(collegeId));
     }
 
-    @GetMapping("/internal/departments/{id}/hod")
+    @GetMapping("/departments/{id}/hod")
     public ResponseEntity<HodResponse> getHodDetails(@PathVariable Long id) {
         Department dept = departmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Department not found"));
