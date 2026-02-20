@@ -29,6 +29,11 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     public GatewayFilter apply(Config config) {
         return ((exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
+            // 🔥 CRITICAL FIX FOR CORS: Let Preflight requests pass through!
+            if (request.getMethod().name().equals("OPTIONS")) {
+                return chain.filter(exchange);
+            }
+
             ServerHttpRequest.Builder requestBuilder = request.mutate();
 
             // 1. Validation Logic
