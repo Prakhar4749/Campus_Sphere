@@ -11,10 +11,13 @@ import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashMap;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Aspect
 @Component
@@ -37,77 +40,67 @@ public class NotificationAspect {
                     .payload(new HashMap<>())
                     .build();
 
-            // -----------------------------------------------------------------
-            // LOGIC BLOCK: Populate Event based on what method triggered it
-            // -----------------------------------------------------------------
+            // 2. Populate Event Data safely
+            populateEventData(joinPoint, sendNotification.eventType(), result, event);
 
-            // CASE 1: OTP Generation (Result is OtpEvent)
-            if (result instanceof OtpService.OtpEvent) {
-                OtpService.OtpEvent otpData = (OtpService.OtpEvent) result;
-                event.setTargetEmail(otpData.getEmail());
-                event.getPayload().put("otp", otpData.getOtpCode());
+            // 3. Serialize
+            String jsonMessage = objectMapper.writeValueAsString(event);
+
+            // 4. Send & Handle Async Callback (Crucial for Production)
+            CompletableFuture<SendResult<String, String>> future = kafkaTemplate.send(sendNotification.topic(), jsonMessage);
+
+            future.whenComplete((sendResult, exception) -> {
+                if (exception == null) {
+                    log.info("✅ Kafka Published: [{}] on topic [{}] for [{}]",
+                            event.getEventType(), sendNotification.topic(), event.getTargetEmail());
+                } else {
+                    log.error("❌ Kafka Delivery Failed: [{}] for [{}]. Reason: {}",
+                            event.getEventType(), event.getTargetEmail(), exception.getMessage());
+                }
+            });
+
+        } catch (Exception e) {
+            // Log properly, do NOT use e.printStackTrace()
+            log.error("❌ AOP Notification Prep Failed for event [{}]: {}", sendNotification.eventType(), e.getMessage(), e);
+        }
+    }
+
+    // Extracted logic to keep the main advice clean
+    private void populateEventData(JoinPoint joinPoint, String eventType, Object result, NotificationEvent event) {
+
+        if (result instanceof OtpService.OtpEvent otpData) {
+            event.setTargetEmail(otpData.getEmail());
+            event.getPayload().put("otp", otpData.getOtpCode());
+            event.setPriority("HIGH");
+
+        } else if ("ADMIN_USER_CREATED".equals(eventType) && result instanceof User user) {
+            event.setTargetUserId(user.getId());
+            event.setTargetEmail(user.getEmail());
+            if (joinPoint.getArgs().length > 0 && joinPoint.getArgs()[0] instanceof SignupRequest req) {
+                event.getPayload().put("tempPassword", req.getPassword());
+                event.getPayload().put("role", req.getRole().toString());
+            }
+
+        } else if ("USER_REGISTERED".equals(eventType)) {
+            if (joinPoint.getArgs().length > 0 && joinPoint.getArgs()[0] instanceof SignupRequest req) {
+                event.getPayload().put("userEmail", req.getEmail());
+                event.getPayload().put("departmentId", req.getDepartmentId());
+                event.getPayload().put("enrollmentNo", req.getEnrollmentNo());
+            }
+
+        } else if (result instanceof User user) {
+            event.setTargetUserId(user.getId());
+            event.setTargetEmail(user.getEmail());
+            event.getPayload().put("status", user.getStatus().toString());
+            if ("ACCOUNT_APPROVED".equals(eventType)) {
                 event.setPriority("HIGH");
             }
 
-            // CASE 2: Admin Creation (We need the RAW password from args!)
-            else if ("ADMIN_USER_CREATED".equals(sendNotification.eventType())) {
-                if (result instanceof User) {
-                    User user = (User) result;
-                    event.setTargetUserId(user.getId());
-                    event.setTargetEmail(user.getEmail());
-
-                    // Extract Raw Password from the Method Arguments (SignupRequest)
-                    if (joinPoint.getArgs().length > 0 && joinPoint.getArgs()[0] instanceof SignupRequest) {
-                        SignupRequest req = (SignupRequest) joinPoint.getArgs()[0];
-                        event.getPayload().put("tempPassword", req.getPassword()); // <--- CRITICAL
-                        event.getPayload().put("role", req.getRole().toString());
-                    }
-                }
+        } else if ("PASSWORD_CHANGED".equals(eventType)) {
+            if (joinPoint.getArgs().length > 0 && joinPoint.getArgs()[0] instanceof String email) {
+                event.setTargetEmail(email);
+                event.setPriority("HIGH");
             }
-
-            else if ("USER_REGISTERED".equals(sendNotification.eventType())) {
-                if (joinPoint.getArgs().length > 0 && joinPoint.getArgs()[0] instanceof SignupRequest) {
-                    SignupRequest req = (SignupRequest) joinPoint.getArgs()[0];
-
-                    // We DO NOT set a single target email here. We pack the data needed for BOTH emails.
-                    event.getPayload().put("userEmail", req.getEmail());
-                    event.getPayload().put("departmentId", req.getDepartmentId()); // Critical for HOD lookup
-                    event.getPayload().put("enrollmentNo", req.getEnrollmentNo());
-                }
-            }
-
-            // CASE 4: Status Change / Approval (Result is User)
-            else if (result instanceof User) {
-                User user = (User) result;
-                event.setTargetUserId(user.getId());
-                event.setTargetEmail(user.getEmail());
-                event.getPayload().put("status", user.getStatus().toString());
-
-                if ("ACCOUNT_APPROVED".equals(sendNotification.eventType())) {
-                    event.setPriority("HIGH");
-                }
-            }
-
-            // CASE 5: Password Changed (Result is String, Args has Email)
-            else if ("PASSWORD_CHANGED".equals(sendNotification.eventType())) {
-                // Method signature: resetPassword(email, otp, newPassword)
-                if (joinPoint.getArgs().length > 0) {
-                    String email = (String) joinPoint.getArgs()[0];
-                    event.setTargetEmail(email);
-                    event.setPriority("HIGH");
-                }
-            }
-            // -----------------------------------------------------------------
-
-            // 3. Serialize & Send
-            String jsonMessage = objectMapper.writeValueAsString(event);
-            kafkaTemplate.send(sendNotification.topic(), jsonMessage);
-
-            log.info("✅ AOP Published Event: {} for {}", event.getEventType(), event.getTargetEmail());
-
-        } catch (Exception e) {
-            log.error("❌ AOP Notification Failed: {}", e.getMessage());
-            e.printStackTrace();
         }
     }
 }
