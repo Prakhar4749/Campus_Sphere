@@ -1,9 +1,8 @@
 package com.notificationService.exceptions;
 
 
-import com.adminService.exceptions.DuplicateResourceException;
-import com.adminService.exceptions.ResourceNotFoundException;
-import com.adminService.exceptions.UnauthorizedAccessException;
+
+import com.notificationService.DTO.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
