@@ -1,42 +1,75 @@
 # ======================
-# IDE
+# IDE & Editors
 # ======================
 .idea/
 *.iml
+*.iws
+*.ipr
 .vscode/
+.classpath
+.project
+.settings/
+.factorypath
 
 # ======================
-# Build
+# Build & Dependency Managers
 # ======================
 target/
 out/
 build/
+bin/
+# Maven wrapper
+.mvn/
+!/.mvn/wrapper/maven-wrapper.jar
+!/.mvn/wrapper/maven-wrapper.properties
 
 # ======================
-# Logs
+# Environment / Secrets (CRITICAL)
+# ======================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+application-secret.properties
+application-local.properties
+
+# ======================
+# Logs & Temporary Files
 # ======================
 *.log
 logs/
+temp/
+tmp/
 
 # ======================
-# OS
+# OS Specific
 # ======================
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # ======================
-# Env / Secrets
+# Docker (If you use it for Kafka/Postgres)
 # ======================
-.env
-.env.*
-application-secret.properties
+.docker/
+docker-compose.override.yml
 
 # ======================
-# Node (future frontend)
+# Node / Frontend (React)
 # ======================
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+dist/
+build/
 
 # ======================
-# Maven Wrapper Cache
+# Testing
 # ======================
-.mvn/wrapper/maven-wrapper.jar
+/test-output/
+/screenshots/
