@@ -6,6 +6,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Component
+@Slf4j
 public class JwtService {
 
     @Value("${app.jwt.secret}")
@@ -23,6 +25,7 @@ public class JwtService {
 
     // Modified to accept User entity to extract claims
     public String generateToken(User user) {
+        log.info("Generating JWT token for user: {}", user.getEmail());
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", user.getRole());
         claims.put("collegeId", user.getCollegeId());
@@ -62,11 +65,16 @@ public class JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSignKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(getSignKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (Exception e) {
+            log.error("Failed to extract claims from token: {}", e.getMessage());
+            throw e;
+        }
     }
 
     public boolean validateToken(final String token) {
@@ -74,6 +82,7 @@ public class JwtService {
             Jwts.parserBuilder().setSigningKey(getSignKey()).build().parseClaimsJws(token);
             return true;
         } catch (Exception e) {
+            log.warn("JWT Token validation failed: {}", e.getMessage());
             return false;
         }
     }
