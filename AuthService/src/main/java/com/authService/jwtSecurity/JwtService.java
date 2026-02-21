@@ -32,6 +32,7 @@ public class JwtService {
         claims.put("departmentId", user.getDepartmentId());
         claims.put("enrollmentNo", user.getEnrollmentNo());
         claims.put("status", user.getStatus());
+        claims.put("userId", user.getId());
 
         return createToken(claims, user.getEmail());
     }
